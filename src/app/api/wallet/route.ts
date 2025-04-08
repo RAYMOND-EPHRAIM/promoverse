@@ -1,29 +1,39 @@
 // src/app/api/wallet/route.ts
-import { getAuthSession } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
-  const session = await getAuthSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
 
-  const wallet = await prisma.wallet.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  if (!wallet) {
-    // Create one if it doesn't exist
-    const newWallet = await prisma.wallet.create({
-      data: {
-        userId: session.user.id,
-        balance: 100, // 👈 Optional: give welcome credits
-        history: [],
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        walletBalance: true,
+        transactions: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        },
       },
     });
-    return NextResponse.json(newWallet);
-  }
 
-  return NextResponse.json(wallet);
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    return NextResponse.json({
+      balance: user.walletBalance,
+      transactions: user.transactions,
+    });
+  } catch (error) {
+    console.error('Error in wallet route:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
 }
