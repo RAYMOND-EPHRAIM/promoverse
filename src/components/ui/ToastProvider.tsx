@@ -2,31 +2,34 @@
 
 import { Toaster } from 'react-hot-toast';
 
-export function ToastProvider() {
+export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
-    <Toaster
-      position="top-right"
-      toastOptions={{
-        duration: 3000,
-        style: {
-          background: '#333',
-          color: '#fff',
-        },
-        success: {
+    <>
+      {children}
+      <Toaster
+        position="top-right"
+        toastOptions={{
           duration: 3000,
           style: {
-            background: '#10B981',
+            background: '#333',
             color: '#fff',
           },
-        },
-        error: {
-          duration: 4000,
-          style: {
-            background: '#EF4444',
-            color: '#fff',
+          success: {
+            duration: 3000,
+            style: {
+              background: '#10B981',
+              color: '#fff',
+            },
           },
-        },
-      }}
-    />
+          error: {
+            duration: 4000,
+            style: {
+              background: '#EF4444',
+              color: '#fff',
+            },
+          },
+        }}
+      />
+    </>
   );
 } 
