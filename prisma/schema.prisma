@@ -95,9 +95,11 @@ model Promotion {
   boostedAt      DateTime?
   verseId        String?
   verse          Verse?     @relation(fields: [verseId], references: [id])
-  location       Location?
+  locationId     String?    @db.ObjectId
+  location       Location?  @relation(fields: [locationId], references: [id])
   locationViews  Json?
   locationClicks Json?
+  promotionAnalytics PromotionAnalytics?
 }
 
 model Comment {
@@ -164,8 +166,8 @@ model Location {
 }
 
 model PromotionAnalytics {
-  id              String   @id @default(cuid())
-  promotionId     String   @unique
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  promotionId     String   @unique @db.ObjectId
   promotion       Promotion @relation(fields: [promotionId], references: [id])
   verseViews      Json     // Map of verse IDs to view counts
   verseClicks     Json     // Map of verse IDs to click counts
