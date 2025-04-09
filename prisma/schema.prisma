@@ -7,6 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model User {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
@@ -46,7 +73,6 @@ model Promotion {
   imageUrl       String
   authorId       String   @db.ObjectId
   author         User     @relation(fields: [authorId], references: [id])
-  verse          String
   starCount      Int      @default(0)
   commentCount   Int      @default(0)
   viewCount      Int      @default(0)
@@ -58,7 +84,6 @@ model Promotion {
   comments       Comment[]
   content        String
   mediaUrl       String?
-  verses         String[]
   category       String?
   boosted        Boolean   @default(false)
   analytics      Analytics?
@@ -98,6 +123,7 @@ model Analytics {
   post   Promotion   @relation(fields: [postId], references: [id])
   views  Int    @default(0)
   clicks Int    @default(0)
+  engagementRate Float @default(0)
 }
 
 model Notification {
@@ -105,40 +131,36 @@ model Notification {
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id])
   type      String
-  actorId   String   @db.ObjectId
-  promotionId String?  @db.ObjectId
+  message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
 model Star {
-  id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String     @db.ObjectId
-  promotionId  String     @db.ObjectId
-  user         User       @relation(fields: [userId], references: [id])
-  promotion    Promotion  @relation(fields: [promotionId], references: [id])
-  createdAt    DateTime   @default(now())
-
-  @@unique([userId, promotionId])
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  postId    String   @db.ObjectId
+  post      Promotion @relation(fields: [postId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 model Transaction {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
-  amount      Float
-  type        String   // DEPOSIT, WITHDRAW, BOOST, etc.
-  description String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  type      String
+  status    String
+  createdAt DateTime @default(now())
 }
 
 model Location {
-  id           String     @id @default(cuid())
-  latitude     Float
-  longitude    Float
-  promotionId  String     @unique
-  promotion    Promotion  @relation(fields: [promotionId], references: [id])
-  createdAt    DateTime   @default(now())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  latitude  Float
+  longitude Float
+  posts     Promotion[]
 }
 
 model PromotionAnalytics {
@@ -154,10 +176,8 @@ model PromotionAnalytics {
 }
 
 model Verse {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  promotions  Promotion[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  author    String
+  posts     Promotion[]
 }
