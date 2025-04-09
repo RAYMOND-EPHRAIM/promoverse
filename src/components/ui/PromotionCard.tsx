@@ -79,10 +79,17 @@ export default function PromotionCard({
       try {
         // Get user's current verse and location
         const verseId = localStorage.getItem('currentVerse');
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
+        let position: GeolocationPosition | null = null;
+        
+        try {
+          position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+          });
+        } catch (error) {
+          console.warn('Could not get geolocation:', error);
+        }
 
+        // Track view
         await fetch(`/api/analytics/${id}`, {
           method: 'POST',
           headers: {
@@ -91,16 +98,28 @@ export default function PromotionCard({
           body: JSON.stringify({
             type: 'view',
             verseId,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: position?.coords.latitude,
+            longitude: position?.coords.longitude,
           }),
         });
 
+        // Fetch analytics
         const response = await fetch(`/api/analytics/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics');
+        }
         const data = await response.json();
         setAnalytics(data);
       } catch (error) {
-        console.error('Error tracking view:', error);
+        console.warn('Error in analytics tracking:', error);
+        // Set default analytics if tracking fails
+        setAnalytics({
+          views: 0,
+          clicks: 0,
+          engagementRate: '0%',
+          boostEffectiveness: 'N/A',
+          boostLevel: 0,
+        });
       }
     };
 
