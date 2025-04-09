@@ -1,7 +1,7 @@
 // src/components/ui/Feed.tsx
 'use client';
 
-import { PromotionCard } from './PromotionCard';
+import PromotionCard from './PromotionCard';
 import { useState } from 'react';
 
 // Mock data - replace with actual data fetching
