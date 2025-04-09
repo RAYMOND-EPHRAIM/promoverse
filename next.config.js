@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverActions: true,
-    serverComponentsExternalPackages: ['@prisma/client'],
+    serverActions: {},
   },
+  serverExternalPackages: ['@prisma/client'],
   eslint: {
     ignoreDuringBuilds: true, // ✅ THIS is the key
   },
