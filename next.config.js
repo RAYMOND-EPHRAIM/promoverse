@@ -4,14 +4,13 @@ const nextConfig = {
   experimental: {
     serverActions: {},
   },
-  serverExternalPackages: ['@prisma/client'],
+  transpilePackages: ['@prisma/client'],
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
     domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com'],
   },
-  allowedDevOrigins: ['localhost:3000', '100.115.92.198:3000'],
 };
 
 module.exports = nextConfig;
