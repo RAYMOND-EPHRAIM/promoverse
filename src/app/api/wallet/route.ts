@@ -11,10 +11,11 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Get user with wallet and transactions
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: {
-        walletBalance: true,
+      include: {
+        wallet: true,
         transactions: {
           orderBy: {
             createdAt: 'desc',
@@ -28,8 +29,11 @@ export async function GET() {
       return new NextResponse('User not found', { status: 404 });
     }
 
+    // Use wallet balance if exists, otherwise use user's walletBalance
+    const balance = user.wallet?.balance || user.walletBalance;
+
     return NextResponse.json({
-      balance: user.walletBalance,
+      balance,
       transactions: user.transactions,
     });
   } catch (error) {

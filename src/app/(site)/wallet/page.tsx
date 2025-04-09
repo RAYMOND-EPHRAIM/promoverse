@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Zap, ArrowDown, ArrowUp, Loader } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 interface Transaction {
   id: string;
@@ -18,27 +19,33 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchWalletData = async () => {
       try {
         const response = await fetch('/api/wallet');
         if (!response.ok) {
+          if (response.status === 401) {
+            router.push('/auth/signin');
+            return;
+          }
           throw new Error('Failed to fetch wallet data');
         }
         const data = await response.json();
         setBalance(data.balance);
-        setTransactions(data.transactions);
+        setTransactions(data.transactions || []);
       } catch (error) {
         console.error('Error fetching wallet data:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch wallet data');
+        toast.error('Failed to load wallet data');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchWalletData();
-  }, []);
+  }, [router]);
 
   const handleDeposit = async (amount: number) => {
     setIsLoading(true);
