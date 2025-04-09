@@ -6,7 +6,7 @@ const nextConfig = {
   },
   serverExternalPackages: ['@prisma/client'],
   eslint: {
-    ignoreDuringBuilds: true, // ✅ THIS is the key
+    ignoreDuringBuilds: true,
   },
   images: {
     domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com'],
