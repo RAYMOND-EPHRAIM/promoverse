@@ -7,11 +7,68 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
+    
+    // Allow access for admin (epharimray@gmail.com) without session
+    if (!session?.user && process.env.NODE_ENV === 'development') {
+      // Return mock data for admin in development
+      return NextResponse.json({
+        balance: 10000,
+        transactions: [
+          {
+            id: '1',
+            amount: 10000,
+            type: 'DEPOSIT',
+            description: 'Initial admin balance for epharimray@gmail.com',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+
+    // If user is logged in and is admin (epharimray@gmail.com)
+    if (session?.user?.email === 'epharimray@gmail.com') {
+      // Get admin user with wallet and transactions
+      const adminUser = await prisma.user.findUnique({
+        where: { email: 'epharimray@gmail.com' },
+        include: {
+          wallet: true,
+          transactions: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 10,
+          },
+        },
+      });
+
+      if (!adminUser) {
+        // If admin user doesn't exist, return mock data
+        return NextResponse.json({
+          balance: 10000,
+          transactions: [
+            {
+              id: '1',
+              amount: 10000,
+              type: 'DEPOSIT',
+              description: 'Initial admin balance for epharimray@gmail.com',
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+
+      const balance = adminUser.wallet?.balance || adminUser.walletBalance;
+      return NextResponse.json({
+        balance,
+        transactions: adminUser.transactions,
+      });
+    }
+
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Get user with wallet and transactions
+    // Get regular user with wallet and transactions
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -29,9 +86,7 @@ export async function GET() {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Use wallet balance if exists, otherwise use user's walletBalance
     const balance = user.wallet?.balance || user.walletBalance;
-
     return NextResponse.json({
       balance,
       transactions: user.transactions,
