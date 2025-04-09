@@ -12,18 +12,16 @@ const mockPromotions = [
     description: 'Join us for the biggest music festival of the year!',
     imageUrl: '/festival.jpg',
     author: {
+      name: 'MusicVerse Team',
       username: 'musicverse',
       avatar: '/default-avatar.png',
     },
-    verse: 'MusicVerse',
-    stats: {
-      stars: 156,
-      comments: 42,
-      shares: 23,
-      views: 1234,
-    },
+    createdAt: new Date().toISOString(),
+    stars: 156,
+    isStarred: false,
     boostLevel: 2,
-    cosmicPoints: 50,
+    onStar: async () => {},
+    onBoost: async () => {},
   },
   {
     id: '2',
@@ -31,18 +29,16 @@ const mockPromotions = [
     description: 'The future of technology starts here.',
     imageUrl: '/conference.jpg',
     author: {
+      name: 'TechVerse Team',
       username: 'techverse',
       avatar: '/default-avatar.png',
     },
-    verse: 'TechVerse',
-    stats: {
-      stars: 89,
-      comments: 31,
-      shares: 15,
-      views: 876,
-    },
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    stars: 89,
+    isStarred: false,
     boostLevel: 1,
-    cosmicPoints: 30,
+    onStar: async () => {},
+    onBoost: async () => {},
   },
   {
     id: '3',
@@ -50,36 +46,57 @@ const mockPromotions = [
     description: 'Contemporary art from emerging artists.',
     imageUrl: '/art.jpg',
     author: {
+      name: 'ArtVerse Team',
       username: 'artverse',
       avatar: '/default-avatar.png',
     },
-    verse: 'ArtVerse',
-    stats: {
-      stars: 67,
-      comments: 28,
-      shares: 12,
-      views: 654,
-    },
+    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    stars: 67,
+    isStarred: false,
     boostLevel: 0,
-    cosmicPoints: 20,
+    onStar: async () => {},
+    onBoost: async () => {},
   },
 ];
 
 export function Feed() {
   const [promotions, setPromotions] = useState(mockPromotions);
 
-  const handleBoost = async (promotionId: string) => {
+  const handleStar = async (promotionId: string) => {
     try {
-      const response = await fetch(`/api/promotions/${promotionId}/boost`, {
+      const response = await fetch(`/api/promotions/${promotionId}/star`, {
         method: 'POST',
       });
       
       if (response.ok) {
-        // Update the local state to reflect the boost
         setPromotions(prevPromotions =>
           prevPromotions.map(promotion =>
             promotion.id === promotionId
-              ? { ...promotion, boostLevel: (promotion.boostLevel || 0) + 1 }
+              ? { ...promotion, isStarred: true, stars: promotion.stars + 1 }
+              : promotion
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error starring promotion:', error);
+    }
+  };
+
+  const handleBoost = async (promotionId: string, level: number) => {
+    try {
+      const response = await fetch(`/api/promotions/${promotionId}/boost`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ level }),
+      });
+      
+      if (response.ok) {
+        setPromotions(prevPromotions =>
+          prevPromotions.map(promotion =>
+            promotion.id === promotionId
+              ? { ...promotion, boostLevel: level }
               : promotion
           )
         );
@@ -95,7 +112,8 @@ export function Feed() {
         <PromotionCard
           key={promotion.id}
           {...promotion}
-          onBoost={() => handleBoost(promotion.id)}
+          onStar={() => handleStar(promotion.id)}
+          onBoost={(id, level) => handleBoost(id, level)}
         />
       ))}
     </div>
