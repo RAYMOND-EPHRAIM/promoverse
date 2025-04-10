@@ -2,13 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light Theme */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
+/* Dark Theme (media-based, or class-based if you switch darkMode to 'class') */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -16,6 +18,7 @@
   }
 }
 
+/* Global body styling */
 body {
   background: var(--background);
   color: var(--foreground);
