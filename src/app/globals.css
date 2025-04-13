@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light Theme */
+/* Custom styles */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,7 +10,6 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
-/* Dark Theme (media-based, or class-based if you switch darkMode to 'class') */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -18,7 +17,6 @@
   }
 }
 
-/* Global body styling */
 body {
   background: var(--background);
   color: var(--foreground);
