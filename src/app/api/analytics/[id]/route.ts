@@ -1,52 +1,63 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
+import { getAuthSession } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const promotion = await prisma.promotion.findUnique({
-      where: { id: params.id },
+    const analytics = await prisma.analytics.findUnique({
+      where: { postId: params.id },
       include: {
-        analytics: true,
+        post: {
+          select: {
+            verse: true,
+            location: true,
+          },
+        },
       },
     });
 
-    if (!promotion) {
-      return new NextResponse('Promotion not found', { status: 404 });
+    if (!analytics) {
+      // Create default analytics if none exist
+      const newAnalytics = await prisma.analytics.create({
+        data: {
+          postId: params.id,
+          views: 0,
+          clicks: 0,
+          engagementRate: 0,
+        },
+        include: {
+          post: {
+            select: {
+              verse: true,
+              location: true,
+            },
+          },
+        },
+      });
+      return NextResponse.json(newAnalytics);
     }
 
     // Calculate engagement rate
-    const engagementRate = promotion.analytics
-      ? `${((promotion.analytics.clicks / promotion.analytics.views) * 100).toFixed(1)}%`
+    const engagementRate = analytics.clicks > 0 
+      ? ((analytics.clicks / analytics.views) * 100).toFixed(1) + '%'
       : '0%';
 
-    // Calculate boost effectiveness (views per hour)
-    const boostEffectiveness = promotion.boostedAt
-      ? `${Math.round(
-          promotion.analytics?.views /
-            ((Date.now() - new Date(promotion.boostedAt).getTime()) / (1000 * 60 * 60))
-        )}`
-      : 'N/A';
-
     return NextResponse.json({
-      views: promotion.analytics?.views || 0,
-      clicks: promotion.analytics?.clicks || 0,
+      ...analytics,
       engagementRate,
-      boostEffectiveness,
-      boostLevel: promotion.boostLevel || 0,
+      boostEffectiveness: analytics.post?.boostedAt 
+        ? `${(analytics.views / (Date.now() - analytics.post.boostedAt.getTime()) * 3600000).toFixed(1)}`
+        : 'N/A',
     });
   } catch (error) {
     console.error('Error fetching analytics:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch analytics' },
+      { status: 500 }
+    );
   }
 }
 
@@ -55,55 +66,70 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
     const { type, verseId, latitude, longitude } = body;
 
-    const promotion = await prisma.promotion.findUnique({
-      where: { id: params.id },
-      include: {
-        analytics: true,
+    // Update basic analytics
+    const analytics = await prisma.analytics.upsert({
+      where: { postId: params.id },
+      create: {
+        postId: params.id,
+        views: type === 'view' ? 1 : 0,
+        clicks: type === 'click' ? 1 : 0,
+        engagementRate: 0,
+      },
+      update: {
+        views: type === 'view' ? { increment: 1 } : undefined,
+        clicks: type === 'click' ? { increment: 1 } : undefined,
       },
     });
 
-    if (!promotion) {
-      return new NextResponse('Promotion not found', { status: 404 });
-    }
-
-    // Update analytics
-    if (type === 'view') {
-      await prisma.analytics.upsert({
-        where: { postId: params.id },
-        update: {
-          views: { increment: 1 },
-        },
+    // Update promotion analytics if verse or location data exists
+    if (verseId || (latitude && longitude)) {
+      await prisma.promotionAnalytics.upsert({
+        where: { promotionId: params.id },
         create: {
-          postId: params.id,
-          views: 1,
-          clicks: 0,
+          promotionId: params.id,
+          verseViews: verseId ? { [verseId]: type === 'view' ? 1 : 0 } : {},
+          verseClicks: verseId ? { [verseId]: type === 'click' ? 1 : 0 } : {},
+          locationViews: latitude && longitude 
+            ? { [`${latitude},${longitude}`]: type === 'view' ? 1 : 0 }
+            : {},
+          locationClicks: latitude && longitude
+            ? { [`${latitude},${longitude}`]: type === 'click' ? 1 : 0 }
+            : {},
+        },
+        update: {
+          verseViews: verseId ? {
+            increment: { [verseId]: type === 'view' ? 1 : 0 }
+          } : undefined,
+          verseClicks: verseId ? {
+            increment: { [verseId]: type === 'click' ? 1 : 0 }
+          } : undefined,
+          locationViews: latitude && longitude ? {
+            increment: { [`${latitude},${longitude}`]: type === 'view' ? 1 : 0 }
+          } : undefined,
+          locationClicks: latitude && longitude ? {
+            increment: { [`${latitude},${longitude}`]: type === 'click' ? 1 : 0 }
+          } : undefined,
         },
       });
-    } else if (type === 'click') {
-      await prisma.analytics.upsert({
-        where: { postId: params.id },
-        update: {
-          clicks: { increment: 1 },
-        },
-        create: {
-          postId: params.id,
-          views: 0,
-          clicks: 1,
-        },
-      });
     }
 
-    return new NextResponse('OK');
+    return NextResponse.json(analytics);
   } catch (error) {
-    console.error('Error tracking analytics:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Error updating analytics:', error);
+    return NextResponse.json(
+      { error: 'Failed to update analytics' },
+      { status: 500 }
+    );
   }
 } 

@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Star, Zap, Share2, MoreHorizontal, Eye, MousePointer, TrendingUp, MapPin, Globe } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { api } from '@/lib/api';
+import { useAnalytics } from '@/hooks/useApi';
 
 interface Analytics {
   views: number;
@@ -68,89 +70,35 @@ export default function PromotionCard({
   const [starred, setStarred] = useState(isStarred);
   const [starCount, setStarCount] = useState(stars);
   const [isLoading, setIsLoading] = useState(false);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showVerseAnalytics, setShowVerseAnalytics] = useState(false);
   const [showLocationAnalytics, setShowLocationAnalytics] = useState(false);
 
-  // Track view and fetch analytics
-  useEffect(() => {
-    const trackView = async () => {
-      try {
-        // Get user's current verse and location
-        const verseId = localStorage.getItem('currentVerse');
-        let position: GeolocationPosition | null = null;
-        
-        try {
-          position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject);
-          });
-        } catch (error) {
-          console.warn('Could not get geolocation:', error);
-        }
-
-        // Track view
-        await fetch(`/api/analytics/${id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'view',
-            verseId,
-            latitude: position?.coords.latitude,
-            longitude: position?.coords.longitude,
-          }),
-        });
-
-        // Fetch analytics
-        const response = await fetch(`/api/analytics/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch analytics');
-        }
-        const data = await response.json();
-        setAnalytics(data);
-      } catch (error) {
-        console.warn('Error in analytics tracking:', error);
-        // Set default analytics if tracking fails
-        setAnalytics({
-          views: 0,
-          clicks: 0,
-          engagementRate: '0%',
-          boostEffectiveness: 'N/A',
-          boostLevel: 0,
-        });
-      }
-    };
-
-    trackView();
-  }, [id]);
+  // Use the custom hook for analytics
+  const { data: analytics, error: analyticsError } = useAnalytics(id);
 
   const handleClick = async (e: React.MouseEvent) => {
-    if (
-      (e.target as HTMLElement).closest('button') ||
-      (e.target as HTMLElement).closest('a')
-    ) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
       return;
     }
 
     try {
-      const verseId = localStorage.getItem('currentVerse');
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-      });
+      const verseId = localStorage.getItem('currentVerse') || undefined;
+      let position: GeolocationPosition | null = null;
+      
+      try {
+        position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+      } catch (error) {
+        console.warn('Could not get geolocation:', error);
+      }
 
-      await fetch(`/api/analytics/${id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'click',
-          verseId,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }),
+      await api.trackAnalytics(id, {
+        type: 'click',
+        verseId,
+        latitude: position?.coords.latitude,
+        longitude: position?.coords.longitude,
       });
 
       router.push(`/promotions/${id}`);
@@ -167,7 +115,6 @@ export default function PromotionCard({
       setStarred(true);
       setStarCount(starCount + 1);
     } catch (error) {
-      console.error('Error starring promotion:', error);
       toast.error('Failed to star promotion');
     } finally {
       setIsLoading(false);

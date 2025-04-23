@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Crown } from 'lucide-react';
+import { Crown, Mail, Lock } from 'lucide-react';
 
 export const AuthModal = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -40,51 +40,61 @@ export const AuthModal = () => {
   };
 
   return (
-    <div className="max-w-sm mx-auto mt-20 p-6 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
-      <h2 className="text-xl font-semibold text-center mb-4 flex items-center justify-center gap-2">
-        {isSignUp ? 'Create Account' : 'Sign In to PromoVerse'}
-        {isAdmin && <Crown className="text-yellow-500" size={20} />}
-      </h2>
+    <div className="w-full space-y-6">
       <div className="space-y-4">
-        <div>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="email"
             placeholder="Email"
-            className="w-full px-4 py-2 rounded-md border bg-white text-black dark:bg-neutral-800 dark:text-white"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-gray-400"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           {isAdmin && (
-            <p className="text-xs text-yellow-500 mt-1">Admin account detected</p>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Crown className="text-yellow-500 h-5 w-5" />
+            </div>
           )}
         </div>
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full px-4 py-2 rounded-md border bg-white text-black dark:bg-neutral-800 dark:text-white"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          onClick={handleAuth}
-          className={`w-full font-semibold py-2 rounded-md transition ${
-            isAdmin
-              ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-          }`}
-        >
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </button>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-gray-400"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
       </div>
-      <p className="mt-4 text-sm text-center text-gray-500 dark:text-gray-400">
-        {isSignUp ? 'Already have an account?' : 'New here?'}{' '}
-        <button
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="text-indigo-600 font-medium hover:underline"
-        >
-          {isSignUp ? 'Sign in' : 'Sign up'}
-        </button>
-      </p>
+
+      <button
+        onClick={handleAuth}
+        className={`w-full font-semibold py-3 rounded-xl transition-all ${
+          isAdmin
+            ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black'
+            : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white'
+        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5`}
+      >
+        {isSignUp ? 'Create Account' : 'Sign In'}
+      </button>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white/80 dark:bg-gray-800/80 text-gray-500">or</span>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setIsSignUp(!isSignUp)}
+        className="w-full py-3 px-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+      >
+        {isSignUp ? 'Sign In Instead' : 'Create New Account'}
+      </button>
     </div>
   );
 };

@@ -22,13 +22,20 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const isAuthPage = children?.toString().includes('SignInPage') ?? false;
+  
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className={cn(inter.className, 'bg-white dark:bg-[#0d0d0d] text-gray-900 dark:text-white')}>
         <Providers>
-          <Navbar />
-          <main className="min-h-screen px-4 md:px-12 max-w-6xl mx-auto pt-16">{children}</main>
-          <Footer />
+          {!isAuthPage && <Navbar />}
+          <main className={cn(
+            'min-h-screen',
+            !isAuthPage && 'px-4 md:px-12 max-w-6xl mx-auto pt-16'
+          )}>
+            {children}
+          </main>
+          {!isAuthPage && <Footer />}
         </Providers>
       </body>
     </html>
