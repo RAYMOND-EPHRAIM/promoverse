@@ -1,6 +1,6 @@
 // src/app/api/wallet/boost/route.ts
 import { getAuthSession } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 const BOOST_LEVELS = [

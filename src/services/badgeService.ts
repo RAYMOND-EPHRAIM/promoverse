@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 const BADGE_THRESHOLDS = {
   STAR_COLLECTOR: { threshold: 100, badge: 'Star Collector' },

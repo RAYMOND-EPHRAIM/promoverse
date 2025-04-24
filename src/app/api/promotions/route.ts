@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 
 export async function POST(req: Request) {
