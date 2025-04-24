@@ -4,13 +4,17 @@
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Crown, Mail, Lock } from 'lucide-react';
+import { Crown, Mail, Lock, User } from 'lucide-react';
 
 export const AuthModal = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -21,27 +25,111 @@ export const AuthModal = () => {
     }
   }, [email]);
 
-  const handleAuth = async () => {
-    const res = await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
+  const handleAuth = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-    if (res?.ok) {
-      if (isAdmin) {
-        router.push('/admin/dashboard');
+    try {
+      if (isSignUp) {
+        // Validate inputs
+        if (!name || !email || !username || !password) {
+          throw new Error('Please fill in all fields');
+        }
+
+        // Handle Sign Up
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            username,
+            password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
+        }
+
+        // After successful registration, sign in automatically
+        const signInRes = await signIn('credentials', {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (signInRes?.error) {
+          throw new Error('Failed to sign in after registration');
+        }
+
+        if (isAdmin) {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/explore');
+        }
       } else {
-        router.push('/explore');
+        // Handle Sign In
+        const res = await signIn('credentials', {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (res?.error) {
+          throw new Error('Invalid credentials');
+        }
+
+        if (isAdmin) {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/explore');
+        }
       }
-    } else {
-      alert('Authentication failed. Please check your credentials.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="w-full space-y-6">
+      {error && (
+        <div className="p-3 text-sm text-red-500 bg-red-100 rounded-lg">
+          {error}
+        </div>
+      )}
       <div className="space-y-4">
+        {isSignUp && (
+          <>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Username"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+          </>
+        )}
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
@@ -71,13 +159,16 @@ export const AuthModal = () => {
 
       <button
         onClick={handleAuth}
+        disabled={isLoading}
         className={`w-full font-semibold py-3 rounded-xl transition-all ${
           isAdmin
             ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black'
             : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white'
-        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5`}
+        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
       >
-        {isSignUp ? 'Create Account' : 'Sign In'}
+        {isLoading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
       </button>
 
       <div className="relative">
